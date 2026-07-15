@@ -1,0 +1,267 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/abdullahawan0043-glitch/Flyrank-machine-learning-internship/blob/main/work/notebooks/w01_research_question.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ioDHbKC7NZ_n"
+      },
+      "source": [
+        "# ML-02 — Research Question and Provisional Lane\n",
+        "\n",
+        "[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/work/notebooks/w01_research_question.ipynb?flush_cache=true)\n",
+        "\n",
+        "This skeleton is yours to fill. Work the sections **in order** — each one has a one-line hint. Simple words, honest numbers.\n",
+        "\n",
+        "> Working with an AI assistant? Tell it to read `skills/README.md` first and load the one skill this assignment names on its card."
+      ],
+      "id": "ioDHbKC7NZ_n"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "xhCWDHRBNZ_q"
+      },
+      "source": [
+        "## 1. My lane (or freestyle) and why\n",
+        "\n",
+        "*Name your lane — or say 'freestyle' and describe your own question. One short paragraph: why this one?*"
+      ],
+      "id": "xhCWDHRBNZ_q"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "xrK_3aNvNZ_r",
+        "outputId": "43789b77-a860-49b7-fb3a-ba906da1ef10",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 487
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "\"\\nLane: Refresh / Content Opportunity Scoring\\n\\nI'm choosing this lane because the starter pipeline I already ran (Notebooks 01-02) showed a clear, measurable win: a learned model beat a hand-written rule at ranking pages by decline risk (Precision@50 went from 0.240 to 0.740, roughly a 3x improvement). This tells me there is real, usable signal in the observable data - search visibility, freshness, position, and engagement - that a simple rule misses but a model can capture. This lane also has a natural, well-defined action (review/refresh a page) and a clear cost of getting it wrong (wasted editor time or a missed real decline), which makes it a strong, honest 7-week project.\\n\""
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 1
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "Lane: Refresh / Content Opportunity Scoring\n",
+        "\n",
+        "I'm choosing this lane because the starter pipeline I already ran (Notebooks 01-02) showed a clear, measurable win: a learned model beat a hand-written rule at ranking pages by decline risk (Precision@50 went from 0.240 to 0.740, roughly a 3x improvement). This tells me there is real, usable signal in the observable data - search visibility, freshness, position, and engagement - that a simple rule misses but a model can capture. This lane also has a natural, well-defined action (review/refresh a page) and a clear cost of getting it wrong (wasted editor time or a missed real decline), which makes it a strong, honest 7-week project.\n",
+        "\"\"\""
+      ],
+      "id": "xrK_3aNvNZ_r"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GM9Ej2gmNZ_u"
+      },
+      "source": [
+        "## 2. The question: decision, action, cost of a wrong call\n",
+        "\n",
+        "*What decision does your work improve? Who acts on it? What does a wrong recommendation cost?*"
+      ],
+      "id": "GM9Ej2gmNZ_u"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "ZlmJ3m_QNZ_v",
+        "outputId": "4dde7c61-26cb-4d7b-cf4a-1c1050b07288",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 573
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "\"\\nThis work improves the decision: which content pages should an editor review and refresh first, given limited time. The person acting on it is a content editor or SEO strategist who has capacity to review only a handful of pages per week - the ranked output tells them where to start.\\n\\nA wrong recommendation costs in two directions: if the model flags a page that isn't really declining, the editor wastes review time on a page that didn't need it (a false positive). If the model misses a page that IS genuinely declining with real demand, that page keeps losing visibility unnoticed until the loss compounds (a false negative, the costlier mistake since it delays a real fix). Because reviewer time is limited, the ranking must be trustworthy enough that the top of the list is worth acting on first.\\n\""
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 2
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "This work improves the decision: which content pages should an editor review and refresh first, given limited time. The person acting on it is a content editor or SEO strategist who has capacity to review only a handful of pages per week - the ranked output tells them where to start.\n",
+        "\n",
+        "A wrong recommendation costs in two directions: if the model flags a page that isn't really declining, the editor wastes review time on a page that didn't need it (a false positive). If the model misses a page that IS genuinely declining with real demand, that page keeps losing visibility unnoticed until the loss compounds (a false negative, the costlier mistake since it delays a real fix). Because reviewer time is limited, the ranking must be trustworthy enough that the top of the list is worth acting on first.\n",
+        "\"\"\""
+      ],
+      "id": "ZlmJ3m_QNZ_v"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CWe4pld3NZ_w"
+      },
+      "source": [
+        "## 3. Quick look at the data (2-3 real numbers)\n",
+        "\n",
+        "*Load the starter CSV below and show 2-3 real numbers that make your lane look worth the next 7 weeks.*"
+      ],
+      "id": "CWe4pld3NZ_w"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "0NSnY-dfNZ_x",
+        "outputId": "d1c24af3-6dd6-43e4-bb4c-437c10bee86f",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Pages declining with real demand (impressions_90d >= 100): 13152 out of 30000 total (43.8%)\n",
+            "Stale but still visible pages (updated 180+ days ago, 500+ impressions): 17\n",
+            "\n",
+            "From the starter pipeline (outputs/model_results.json):\n",
+            "Baseline rule Precision@50: 0.240 (~12 of top 50 correct)\n",
+            "Random forest Precision@50: 0.740 (~37 of top 50 correct)\n",
+            "-> A learned model finds roughly 3x more true declining pages in the top 50 than a fixed rule.\n"
+          ]
+        }
+      ],
+      "source": [
+        "import os, sys, subprocess\n",
+        "import pandas as pd\n",
+        "\n",
+        "REPO_URL = \"https://github.com/abdullahawan0043-glitch/Flyrank-machine-learning-internship\"\n",
+        "REPO_DIR = \"Flyrank-machine-learning-internship\"\n",
+        "\n",
+        "if not os.path.isdir(REPO_DIR):\n",
+        "    subprocess.run([\"git\", \"clone\", \"--depth\", \"1\", REPO_URL, REPO_DIR], check=True)\n",
+        "os.chdir(REPO_DIR)\n",
+        "\n",
+        "df = pd.read_csv(\"data/raw/content_refresh_anonymized.csv\")\n",
+        "\n",
+        "declining_with_demand = df[(df[\"trend_direction\"] == \"down\") & (df[\"impressions_90d\"] >= 100)]\n",
+        "print(f\"Pages declining with real demand (impressions_90d >= 100): {len(declining_with_demand)} out of {len(df)} total ({len(declining_with_demand)/len(df)*100:.1f}%)\")\n",
+        "\n",
+        "stale_visible = df[(df[\"days_since_last_update\"] >= 180) & (df[\"impressions_90d\"] >= 500)]\n",
+        "print(f\"Stale but still visible pages (updated 180+ days ago, 500+ impressions): {len(stale_visible)}\")\n",
+        "\n",
+        "print(\"\\nFrom the starter pipeline (outputs/model_results.json):\")\n",
+        "print(\"Baseline rule Precision@50: 0.240 (~12 of top 50 correct)\")\n",
+        "print(\"Random forest Precision@50: 0.740 (~37 of top 50 correct)\")\n",
+        "print(\"-> A learned model finds roughly 3x more true declining pages in the top 50 than a fixed rule.\")"
+      ],
+      "id": "0NSnY-dfNZ_x"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "1NsEitdINZ_y"
+      },
+      "source": [
+        "## 4. Careful words: what I can and can't claim\n",
+        "\n",
+        "*Write what your work will be able to say (observed, directional, decision-support) — and what it never will (causal proof, 'predicting Google').*"
+      ],
+      "id": "1NsEitdINZ_y"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "s-zQ0UTZNZ_z",
+        "outputId": "96cdae9c-e4f4-4533-87da-d0daa47b6da1",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 400
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "'\\nThis work will produce observed, decision-support rankings: a ranked list of pages, evidence-backed reason codes (why each page was flagged), and a confidence label - meant to help a human editor prioritize review time.\\n\\nIt will not claim to predict Google\\'s ranking algorithm, prove that a refresh will cause recovery, or guarantee that any single flagged page is truly failing - the labels come from observed trends in a limited data window, not from a controlled experiment. Any \"decline\" is a directional pattern in the data, not a causal fact.\\n'"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 4
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "This work will produce observed, decision-support rankings: a ranked list of pages, evidence-backed reason codes (why each page was flagged), and a confidence label - meant to help a human editor prioritize review time.\n",
+        "\n",
+        "It will not claim to predict Google's ranking algorithm, prove that a refresh will cause recovery, or guarantee that any single flagged page is truly failing - the labels come from observed trends in a limited data window, not from a controlled experiment. Any \"decline\" is a directional pattern in the data, not a causal fact.\n",
+        "\"\"\""
+      ],
+      "id": "s-zQ0UTZNZ_z"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "AznaRv4QNZ_0"
+      },
+      "source": [
+        "## Self-check\n",
+        "\n",
+        "Before you submit, confirm each line honestly:\n",
+        "\n",
+        "- [ ] Every section above is filled — markdown thinking AND the code that backs it\n",
+        "- [ ] The notebook runs top to bottom with no errors (Runtime → Run all)\n",
+        "- [ ] No client names, URLs, or private queries anywhere\n",
+        "- [ ] My claims use careful words: observed, measured, directional, decision-support\n",
+        "- [ ] Committed to my repo under `work/notebooks/` — then submit your repo URL on the card. Done."
+      ],
+      "id": "AznaRv4QNZ_0"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
