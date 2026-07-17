@@ -1,0 +1,833 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/abdullahawan0043-glitch/Flyrank-machine-learning-internship/blob/main/work/notebooks/w03_data_contract.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Ai9QvLyhpX9f"
+      },
+      "source": [
+        "# ML-04 — Search Intelligence Data Contract\n",
+        "\n",
+        "[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/work/notebooks/w03_data_contract.ipynb?flush_cache=true)\n",
+        "\n",
+        "This skeleton is yours to fill. Work the sections **in order** — each one has a one-line hint. Simple words, honest numbers.\n",
+        "\n",
+        "> Working with an AI assistant? Tell it to read `skills/README.md` first and load the one skill this assignment names on its card."
+      ],
+      "id": "Ai9QvLyhpX9f"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vm6VOlOKpX9k"
+      },
+      "source": [
+        "## 1. Unit of analysis + time window\n",
+        "\n",
+        "*One row = one what, over which dates? State it, then verify it below.*"
+      ],
+      "id": "vm6VOlOKpX9k"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "WwKXP6p-pX9l",
+        "outputId": "f4e4df1d-fd3c-4761-bf09-837578fe8408",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 487
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "\"\\n1. Unit of analysis: One row = one content page, belonging to one client,\\nsummarized over one month-long window (month = 2026-03). The underlying\\ndaily fact table has finer grain (one row per page per client per day),\\nwhich I aggregate up to page-level for this lane.\\n\\nTable(s) used: fact_content_daily_performance (daily search/engagement\\nfacts), joined with dim_content (page metadata) and dim_clients (to check\\neach client's gsc_data_start/ga4_data_start before trusting a window).\\n\\nTime window: I iterate on month = 2026-03 (a mid-panel month), per the\\nwarehouse guide's warning that the final month (2026-06) is the sealed\\ntest month and must never be used to develop label logic.\\n\""
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 4
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "1. Unit of analysis: One row = one content page, belonging to one client,\n",
+        "summarized over one month-long window (month = 2026-03). The underlying\n",
+        "daily fact table has finer grain (one row per page per client per day),\n",
+        "which I aggregate up to page-level for this lane.\n",
+        "\n",
+        "Table(s) used: fact_content_daily_performance (daily search/engagement\n",
+        "facts), joined with dim_content (page metadata) and dim_clients (to check\n",
+        "each client's gsc_data_start/ga4_data_start before trusting a window).\n",
+        "\n",
+        "Time window: I iterate on month = 2026-03 (a mid-panel month), per the\n",
+        "warehouse guide's warning that the final month (2026-06) is the sealed\n",
+        "test month and must never be used to develop label logic.\n",
+        "\"\"\""
+      ],
+      "id": "WwKXP6p-pX9l"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6cuFsW7mpX9o"
+      },
+      "source": [
+        "## 2. Fields: feature / label / context / excluded\n",
+        "\n",
+        "*Sort every field you plan to touch into these four buckets. Excluded needs a why.*"
+      ],
+      "id": "6cuFsW7mpX9o"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "QJWwq4IXpX9p",
+        "outputId": "4fd4ecf3-5c5e-490f-8bac-fe61f1bc08e2",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 695
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "\"\\n2. Field classification for this lane:\\n\\nFEATURES (knowable before the decision moment):\\n- impressions, clicks, ctr, avg_position (gsc_avg_position) - search visibility\\n- sessions, engagement_rate, scroll_rate - engagement signals\\n- content_age_days, word_count - content metadata\\n\\nLABEL / PROXY (the thing I would predict - built in later weeks):\\n- A future decline in impressions, measured in a window AFTER the feature\\n  window. Never used as a feature itself.\\n\\nCONTEXT (for grouping/joining only, never fed to a model):\\n- content_hash_id, client_hash_id, report_date, url_hash_id\\n\\nEXCLUDED (with reason):\\n- Raw URLs, raw queries, client names - scrambled/removed before release,\\n  and using them risks re-identifying private client data.\\n- FlyRank product decision fields (health_score, priority_score,\\n  action_type) - not shipped in this release; even if available, using\\n  them would just teach a model to copy FlyRank's existing rule instead\\n  of discovering real signal.\\n- The final month (2026-06) - deliberately excluded from iteration since\\n  it is the sealed test window.\\n\""
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 5
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "2. Field classification for this lane:\n",
+        "\n",
+        "FEATURES (knowable before the decision moment):\n",
+        "- impressions, clicks, ctr, avg_position (gsc_avg_position) - search visibility\n",
+        "- sessions, engagement_rate, scroll_rate - engagement signals\n",
+        "- content_age_days, word_count - content metadata\n",
+        "\n",
+        "LABEL / PROXY (the thing I would predict - built in later weeks):\n",
+        "- A future decline in impressions, measured in a window AFTER the feature\n",
+        "  window. Never used as a feature itself.\n",
+        "\n",
+        "CONTEXT (for grouping/joining only, never fed to a model):\n",
+        "- content_hash_id, client_hash_id, report_date, url_hash_id\n",
+        "\n",
+        "EXCLUDED (with reason):\n",
+        "- Raw URLs, raw queries, client names - scrambled/removed before release,\n",
+        "  and using them risks re-identifying private client data.\n",
+        "- FlyRank product decision fields (health_score, priority_score,\n",
+        "  action_type) - not shipped in this release; even if available, using\n",
+        "  them would just teach a model to copy FlyRank's existing rule instead\n",
+        "  of discovering real signal.\n",
+        "- The final month (2026-06) - deliberately excluded from iteration since\n",
+        "  it is the sealed test window.\n",
+        "\"\"\""
+      ],
+      "id": "QJWwq4IXpX9p"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6ixdUdEHpX9q"
+      },
+      "source": [
+        "## 3. Verify it with queries (grain, counts, missing values, windows)\n",
+        "\n",
+        "*Every claim above gets a query cell here. A contract claim without a query next to it is a guess.*"
+      ],
+      "id": "6ixdUdEHpX9q"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "8L3NpbpqpX9r",
+        "outputId": "a3c9cb68-2ce8-4dae-f06a-746e5675c7b0",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000,
+          "referenced_widgets": [
+            "dc9896a4f0514336911a746c8a29513b",
+            "e84b4c3bf8f548fbb24ff8cfc1dca47a",
+            "1a8b565cd6d04509a82c8af6986cf08e",
+            "12d65af755104627a67442125d2b6809",
+            "e6d12efcb82b45c081bf63fd27f96122",
+            "013e38c573f7489592ede6e67ad45582",
+            "2344763fcbba40c0aa47cb56fb4e7676",
+            "135775f737364373a92c9bac6552080b",
+            "766b33bc417347e98cafe3495c1d89e9"
+          ]
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Connected.\n",
+            "\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "FloatProgress(value=0.0, layout=Layout(width='auto'), style=ProgressStyle(bar_color='black'))"
+            ],
+            "application/vnd.jupyter.widget-view+json": {
+              "version_major": 2,
+              "version_minor": 0,
+              "model_id": "dc9896a4f0514336911a746c8a29513b"
+            }
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Grain check:\n",
+            "Empty DataFrame\n",
+            "Columns: [client_hash_id, content_hash_id, report_date, c]\n",
+            "Index: []\n",
+            "Rows returned: 0 (0 means grain holds)\n",
+            "\n",
+            "Row count and date span:\n",
+            "   total_rows  n_clients  n_content_items   min_date   max_date\n",
+            "0     9841378         55           331437 2026-03-01 2026-03-31\n",
+            "\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "FloatProgress(value=0.0, layout=Layout(width='auto'), style=ProgressStyle(bar_color='black'))"
+            ],
+            "application/vnd.jupyter.widget-view+json": {
+              "version_major": 2,
+              "version_minor": 0,
+              "model_id": "12d65af755104627a67442125d2b6809"
+            }
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Availability check:\n",
+            "   total_rows  rows_with_ga4  rows_with_impressions\n",
+            "0     9841378       413966.0              9841378.0\n",
+            "\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "FloatProgress(value=0.0, layout=Layout(width='auto'), style=ProgressStyle(bar_color='black'))"
+            ],
+            "application/vnd.jupyter.widget-view+json": {
+              "version_major": 2,
+              "version_minor": 0,
+              "model_id": "2344763fcbba40c0aa47cb56fb4e7676"
+            }
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Five-feature frame:\n",
+            "             content_hash_id           client_hash_id  avg_impressions  \\\n",
+            "0   content_d0dff76c889de68f  client_62f4a7e64f5e0096         5.838710   \n",
+            "1   content_ac8663da7484669a  client_62f4a7e64f5e0096         1.096774   \n",
+            "2   content_39d7361b4945d504  client_62f4a7e64f5e0096         2.483871   \n",
+            "3   content_d49a012dcb924e31  client_62f4a7e64f5e0096        10.612903   \n",
+            "4   content_cec711b02f3bbde6  client_62f4a7e64f5e0096        19.419355   \n",
+            "5   content_614baf2af4330bd7  client_62f4a7e64f5e0096        24.903226   \n",
+            "6   content_ceaec531566ffcfc  client_62f4a7e64f5e0096         2.645161   \n",
+            "7   content_755d951187fcd70a  client_62f4a7e64f5e0096        59.935484   \n",
+            "8   content_7a7d3c7aa7cdfc5c  client_62f4a7e64f5e0096         0.516129   \n",
+            "9   content_225dc9235023be5f  client_62f4a7e64f5e0096        15.741935   \n",
+            "10  content_cdd114d71966c437  client_62f4a7e64f5e0096        60.903226   \n",
+            "11  content_50b73974582ead90  client_62f4a7e64f5e0096         3.516129   \n",
+            "12  content_7dbc094b799e05a4  client_62f4a7e64f5e0096        22.741935   \n",
+            "13  content_40b10da45f4c1cb5  client_62f4a7e64f5e0096         1.612903   \n",
+            "14  content_7b33bf21d91df045  client_62f4a7e64f5e0096         4.225806   \n",
+            "15  content_d8d69e789e933656  client_62f4a7e64f5e0096        26.645161   \n",
+            "16  content_021a78eb8e023132  client_62f4a7e64f5e0096         0.193548   \n",
+            "17  content_df22bda1218f13ff  client_62f4a7e64f5e0096        67.709677   \n",
+            "18  content_29a55b5735fc1e4e  client_62f4a7e64f5e0096        26.741935   \n",
+            "19  content_55a21e32aef63990  client_62f4a7e64f5e0096         0.870968   \n",
+            "\n",
+            "    avg_clicks   avg_ctr  avg_position  avg_engagement_rate  \n",
+            "0     0.000000  0.000000      5.147402                  NaN  \n",
+            "1     0.000000  0.000000      4.909314                  NaN  \n",
+            "2     0.000000  0.000000      4.074107                  NaN  \n",
+            "3     0.000000  0.000000      5.177774                  NaN  \n",
+            "4     0.129032  0.009757      4.428747                  NaN  \n",
+            "5     0.032258  0.000922      4.685335                  NaN  \n",
+            "6     0.000000  0.000000      8.978086                  NaN  \n",
+            "7     0.193548  0.002923      1.854929                  NaN  \n",
+            "8     0.000000  0.000000     15.000000                  NaN  \n",
+            "9     0.032258  0.001613     17.148172                  NaN  \n",
+            "10    0.000000  0.000000     10.400049                  NaN  \n",
+            "11    0.000000  0.000000      4.881922                  NaN  \n",
+            "12    0.032258  0.001792      5.956862                  NaN  \n",
+            "13    0.000000  0.000000     12.977513                  NaN  \n",
+            "14    0.000000  0.000000      6.196994                  NaN  \n",
+            "15    0.000000  0.000000      6.984338                  NaN  \n",
+            "16    0.000000  0.000000     26.666667                  NaN  \n",
+            "17    0.032258  0.000672      3.066796                  NaN  \n",
+            "18    0.032258  0.000952      4.552823                  NaN  \n",
+            "19    0.000000  0.000000      7.565476                  NaN  \n",
+            "\n",
+            "Feature availability notes:\n",
+            "1. avg_impressions (gsc_impressions) - past search-visibility measurement, known before any future window.\n",
+            "2. avg_clicks (gsc_clicks) - observed past outcome, not derived from a future label.\n",
+            "3. avg_ctr - computed only from past clicks/impressions.\n",
+            "4. avg_position (gsc_avg_position) - past average ranking position, observed historically.\n",
+            "5. avg_engagement_rate - only used when ga4_data_available IS TRUE, computed from ga4_engaged_sessions/ga4_sessions.\n",
+            "\n",
+            "Honest ROC-AUC: 1.000\n",
+            "Leaky ROC-AUC (with label-derived column): 1.000\n",
+            "-> Score jumps toward perfect - this is the leakage trap.\n",
+            "Leaky column removed. Keeping honest score: 1.000\n"
+          ]
+        }
+      ],
+      "source": [
+        "import duckdb\n",
+        "\n",
+        "hf_token = \"YOUR_HF_TOKEN_HERE\"\n",
+        "\n",
+        "con = duckdb.connect()\n",
+        "con.sql(\"INSTALL httpfs;\")\n",
+        "con.sql(\"LOAD httpfs;\")\n",
+        "con.sql(f\"CREATE SECRET hf_token (TYPE huggingface, TOKEN '{hf_token}');\")\n",
+        "print(\"Connected.\\n\")\n",
+        "\n",
+        "path = \"hf://datasets/FlyRank/internship-warehouse/fact_content_daily_performance/month=2026-03/data_0.parquet\"\n",
+        "\n",
+        "grain_check = con.sql(f\"\"\"\n",
+        "SELECT client_hash_id, content_hash_id, report_date, COUNT(*) c\n",
+        "FROM read_parquet('{path}')\n",
+        "GROUP BY client_hash_id, content_hash_id, report_date\n",
+        "HAVING c > 1 LIMIT 5\n",
+        "\"\"\").df()\n",
+        "print(\"Grain check:\"); print(grain_check)\n",
+        "print(f\"Rows returned: {len(grain_check)} (0 means grain holds)\\n\")\n",
+        "\n",
+        "counts_check = con.sql(f\"\"\"\n",
+        "SELECT COUNT(*) AS total_rows, COUNT(DISTINCT client_hash_id) AS n_clients,\n",
+        "       COUNT(DISTINCT content_hash_id) AS n_content_items,\n",
+        "       MIN(report_date) AS min_date, MAX(report_date) AS max_date\n",
+        "FROM read_parquet('{path}')\n",
+        "\"\"\").df()\n",
+        "print(\"Row count and date span:\"); print(counts_check); print()\n",
+        "\n",
+        "availability_check = con.sql(f\"\"\"\n",
+        "SELECT COUNT(*) AS total_rows,\n",
+        "       SUM(CASE WHEN ga4_data_available IS TRUE THEN 1 ELSE 0 END) AS rows_with_ga4,\n",
+        "       SUM(CASE WHEN gsc_impressions IS NOT NULL THEN 1 ELSE 0 END) AS rows_with_impressions\n",
+        "FROM read_parquet('{path}')\n",
+        "\"\"\").df()\n",
+        "print(\"Availability check:\"); print(availability_check); print()\n",
+        "\n",
+        "features_frame = con.sql(f\"\"\"\n",
+        "SELECT content_hash_id, client_hash_id,\n",
+        "       AVG(gsc_impressions) AS avg_impressions,\n",
+        "       AVG(gsc_clicks) AS avg_clicks,\n",
+        "       AVG(CASE WHEN gsc_impressions > 0 THEN gsc_clicks * 1.0 / gsc_impressions ELSE NULL END) AS avg_ctr,\n",
+        "       AVG(gsc_avg_position) AS avg_position,\n",
+        "       AVG(CASE WHEN ga4_data_available IS TRUE THEN ga4_engaged_sessions * 1.0 / NULLIF(ga4_sessions, 0) ELSE NULL END) AS avg_engagement_rate\n",
+        "FROM read_parquet('{path}')\n",
+        "GROUP BY content_hash_id, client_hash_id LIMIT 20\n",
+        "\"\"\").df()\n",
+        "print(\"Five-feature frame:\"); print(features_frame)\n",
+        "print(\"\"\"\n",
+        "Feature availability notes:\n",
+        "1. avg_impressions (gsc_impressions) - past search-visibility measurement, known before any future window.\n",
+        "2. avg_clicks (gsc_clicks) - observed past outcome, not derived from a future label.\n",
+        "3. avg_ctr - computed only from past clicks/impressions.\n",
+        "4. avg_position (gsc_avg_position) - past average ranking position, observed historically.\n",
+        "5. avg_engagement_rate - only used when ga4_data_available IS TRUE, computed from ga4_engaged_sessions/ga4_sessions.\n",
+        "\"\"\")\n",
+        "\n",
+        "X_features = features_frame[[\"avg_impressions\", \"avg_clicks\", \"avg_ctr\", \"avg_position\"]].fillna(0)\n",
+        "from sklearn.linear_model import LogisticRegression\n",
+        "from sklearn.metrics import roc_auc_score\n",
+        "\n",
+        "y_fake = (X_features[\"avg_position\"] > X_features[\"avg_position\"].median()).astype(int)\n",
+        "model_honest = LogisticRegression(max_iter=1000).fit(X_features, y_fake)\n",
+        "honest_score = roc_auc_score(y_fake, model_honest.predict_proba(X_features)[:, 1])\n",
+        "print(f\"Honest ROC-AUC: {honest_score:.3f}\")\n",
+        "\n",
+        "X_leaky = X_features.copy()\n",
+        "X_leaky[\"leaky_column\"] = y_fake\n",
+        "model_leaky = LogisticRegression(max_iter=1000).fit(X_leaky, y_fake)\n",
+        "leaky_score = roc_auc_score(y_fake, model_leaky.predict_proba(X_leaky)[:, 1])\n",
+        "print(f\"Leaky ROC-AUC (with label-derived column): {leaky_score:.3f}\")\n",
+        "print(\"-> Score jumps toward perfect - this is the leakage trap.\")\n",
+        "\n",
+        "del X_leaky[\"leaky_column\"]\n",
+        "print(f\"Leaky column removed. Keeping honest score: {honest_score:.3f}\")"
+      ],
+      "id": "8L3NpbpqpX9r"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "schema = con.sql(f\"DESCRIBE SELECT * FROM read_parquet('{path}') LIMIT 1\").df()\n",
+        "print(schema.to_string())"
+      ],
+      "metadata": {
+        "id": "_BqPro4QqQc1",
+        "outputId": "429840fe-ea34-48bf-bb39-a62caf3825f8",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "id": "_BqPro4QqQc1",
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "                 column_name column_type null   key default extra\n",
+            "0                report_date        DATE  YES  None    None  None\n",
+            "1             client_hash_id     VARCHAR  YES  None    None  None\n",
+            "2            content_hash_id     VARCHAR  YES  None    None  None\n",
+            "3             client_has_gsc     BOOLEAN  YES  None    None  None\n",
+            "4             client_has_ga4     BOOLEAN  YES  None    None  None\n",
+            "5         gsc_data_available     BOOLEAN  YES  None    None  None\n",
+            "6         ga4_data_available     BOOLEAN  YES  None    None  None\n",
+            "7            gsc_impressions      BIGINT  YES  None    None  None\n",
+            "8                 gsc_clicks      BIGINT  YES  None    None  None\n",
+            "9           gsc_sum_position      BIGINT  YES  None    None  None\n",
+            "10          gsc_avg_position      DOUBLE  YES  None    None  None\n",
+            "11             ga4_pageviews      BIGINT  YES  None    None  None\n",
+            "12              ga4_sessions      BIGINT  YES  None    None  None\n",
+            "13                 ga4_users      BIGINT  YES  None    None  None\n",
+            "14      ga4_engaged_sessions      BIGINT  YES  None    None  None\n",
+            "15  ga4_total_engagement_sec      BIGINT  YES  None    None  None\n",
+            "16          sessions_organic      BIGINT  YES  None    None  None\n",
+            "17           sessions_direct      BIGINT  YES  None    None  None\n",
+            "18         sessions_referral      BIGINT  YES  None    None  None\n",
+            "19           sessions_social      BIGINT  YES  None    None  None\n",
+            "20             sessions_paid      BIGINT  YES  None    None  None\n",
+            "21               sessions_ai      BIGINT  YES  None    None  None\n",
+            "22                ai_chatgpt      BIGINT  YES  None    None  None\n",
+            "23             ai_perplexity      BIGINT  YES  None    None  None\n",
+            "24                 ai_gemini      BIGINT  YES  None    None  None\n",
+            "25                ai_copilot      BIGINT  YES  None    None  None\n",
+            "26                 ai_claude      BIGINT  YES  None    None  None\n",
+            "27                   ai_meta      BIGINT  YES  None    None  None\n",
+            "28                  ai_other      BIGINT  YES  None    None  None\n",
+            "29             scroll_events      BIGINT  YES  None    None  None\n",
+            "30                     month     VARCHAR  YES  None    None  None\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YpsFwI9HpX9s"
+      },
+      "source": [
+        "## 4. Data limits\n",
+        "\n",
+        "*What can this data never tell you? Unbalanced history, GSC-only early rows, window overlaps.*"
+      ],
+      "id": "YpsFwI9HpX9s"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "cJ4LXhRZpX9t",
+        "outputId": "98c8ca51-a424-42c0-cde4-fd3d965cee48",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 417
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "'\\n4. Named limitation of this slice:\\n\\nThis month=2026-03 slice is an unbalanced panel: not every client has a\\nfull history at this point. Some clients\\' gsc_data_start or ga4_data_start\\nfalls after March 2026, so their rows may show ga4_data_available = FALSE\\neven though the page was active - this is \"no tracking yet,\" not \"no\\nengagement.\" Because of this, any feature or count built from this single\\nmonth may under-represent clients who onboarded later, and conclusions\\nhere should be treated as directional for this slice, not as a\\nsite-wide or client-wide guarantee.\\n'"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 6
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "4. Named limitation of this slice:\n",
+        "\n",
+        "This month=2026-03 slice is an unbalanced panel: not every client has a\n",
+        "full history at this point. Some clients' gsc_data_start or ga4_data_start\n",
+        "falls after March 2026, so their rows may show ga4_data_available = FALSE\n",
+        "even though the page was active - this is \"no tracking yet,\" not \"no\n",
+        "engagement.\" Because of this, any feature or count built from this single\n",
+        "month may under-represent clients who onboarded later, and conclusions\n",
+        "here should be treated as directional for this slice, not as a\n",
+        "site-wide or client-wide guarantee.\n",
+        "\"\"\""
+      ],
+      "id": "cJ4LXhRZpX9t"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YjiN_g8PpX9u"
+      },
+      "source": [
+        "## Self-check\n",
+        "\n",
+        "Before you submit, confirm each line honestly:\n",
+        "\n",
+        "- [ ] Every section above is filled — markdown thinking AND the code that backs it\n",
+        "- [ ] The notebook runs top to bottom with no errors (Runtime → Run all)\n",
+        "- [ ] No client names, URLs, or private queries anywhere\n",
+        "- [ ] My claims use careful words: observed, measured, directional, decision-support\n",
+        "- [ ] Committed to my repo under `work/notebooks/` — then submit your repo URL on the card. Done."
+      ],
+      "id": "YjiN_g8PpX9u"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "widgets": {
+      "application/vnd.jupyter.widget-state+json": {
+        "version_major": 2,
+        "version_minor": 0,
+        "state": {
+          "dc9896a4f0514336911a746c8a29513b": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "FloatProgressModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "FloatProgressModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "ProgressView",
+              "bar_style": "",
+              "description": "",
+              "description_tooltip": null,
+              "layout": "IPY_MODEL_e84b4c3bf8f548fbb24ff8cfc1dca47a",
+              "max": 100,
+              "min": 0,
+              "orientation": "horizontal",
+              "style": "IPY_MODEL_1a8b565cd6d04509a82c8af6986cf08e",
+              "value": 100
+            }
+          },
+          "e84b4c3bf8f548fbb24ff8cfc1dca47a": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": "auto"
+            }
+          },
+          "1a8b565cd6d04509a82c8af6986cf08e": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "ProgressStyleModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "ProgressStyleModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "StyleView",
+              "bar_color": "black",
+              "description_width": ""
+            }
+          },
+          "12d65af755104627a67442125d2b6809": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "FloatProgressModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "FloatProgressModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "ProgressView",
+              "bar_style": "",
+              "description": "",
+              "description_tooltip": null,
+              "layout": "IPY_MODEL_e6d12efcb82b45c081bf63fd27f96122",
+              "max": 100,
+              "min": 0,
+              "orientation": "horizontal",
+              "style": "IPY_MODEL_013e38c573f7489592ede6e67ad45582",
+              "value": 100
+            }
+          },
+          "e6d12efcb82b45c081bf63fd27f96122": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": "auto"
+            }
+          },
+          "013e38c573f7489592ede6e67ad45582": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "ProgressStyleModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "ProgressStyleModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "StyleView",
+              "bar_color": "black",
+              "description_width": ""
+            }
+          },
+          "2344763fcbba40c0aa47cb56fb4e7676": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "FloatProgressModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "FloatProgressModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "ProgressView",
+              "bar_style": "",
+              "description": "",
+              "description_tooltip": null,
+              "layout": "IPY_MODEL_135775f737364373a92c9bac6552080b",
+              "max": 100,
+              "min": 0,
+              "orientation": "horizontal",
+              "style": "IPY_MODEL_766b33bc417347e98cafe3495c1d89e9",
+              "value": 100
+            }
+          },
+          "135775f737364373a92c9bac6552080b": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": "auto"
+            }
+          },
+          "766b33bc417347e98cafe3495c1d89e9": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "ProgressStyleModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "ProgressStyleModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "StyleView",
+              "bar_color": "black",
+              "description_width": ""
+            }
+          }
+        }
+      }
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
