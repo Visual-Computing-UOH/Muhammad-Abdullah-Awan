@@ -1,0 +1,491 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/abdullahawan0043-glitch/Flyrank-machine-learning-internship/blob/main/work/notebooks/w04_baseline_score.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "4aDOdwd6VLfF"
+      },
+      "source": [
+        "# ML-07 — Baseline Action Score and Top-20 Review\n",
+        "\n",
+        "[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/work/notebooks/w04_baseline_score.ipynb?flush_cache=true)\n",
+        "\n",
+        "This skeleton is yours to fill. Work the sections **in order** — each one has a one-line hint. Simple words, honest numbers.\n",
+        "\n",
+        "> Working with an AI assistant? Tell it to read `skills/README.md` first and load the one skill this assignment names on its card."
+      ],
+      "id": "4aDOdwd6VLfF"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "yR9cFuC0VLfK"
+      },
+      "source": [
+        "## 1. My rule and its reason codes\n",
+        "\n",
+        "*Write the rule in plain words first. Then the reason codes it can output.*"
+      ],
+      "id": "yR9cFuC0VLfK"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "AXxSIYE6VLfL",
+        "outputId": "a91061c7-0521-4447-ce09-95f557afd01f",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Loaded 30000 rows\n"
+          ]
+        }
+      ],
+      "source": [
+        "import os, subprocess\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "\n",
+        "REPO_URL = \"https://github.com/abdullahawan0043-glitch/Flyrank-machine-learning-internship\"\n",
+        "REPO_DIR = \"Flyrank-machine-learning-internship\"\n",
+        "\n",
+        "if not os.path.isdir(REPO_DIR):\n",
+        "    subprocess.run([\"git\", \"clone\", \"--depth\", \"1\", REPO_URL, REPO_DIR], check=True)\n",
+        "os.chdir(REPO_DIR)\n",
+        "\n",
+        "df = pd.read_csv(\"data/raw/content_refresh_anonymized.csv\")\n",
+        "print(f\"Loaded {len(df)} rows\")"
+      ],
+      "id": "AXxSIYE6VLfL"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\"\"\"\n",
+        "Rule idea in plain words:\n",
+        "A page is worth reviewing first if it hasn't been updated in a long time\n",
+        "AND it still gets meaningful search visibility - a stale page that people\n",
+        "can still find is a wasted opportunity. I'll also check whether pages\n",
+        "with good position but low CTR (the CTR-fix signal from the session) are\n",
+        "common enough in my data to matter.\n",
+        "\"\"\"\n",
+        "\n",
+        "# Signal 1: Staleness (behind the refresh flags from the session)\n",
+        "df[\"stale_bucket\"] = pd.cut(df[\"days_since_last_update\"],\n",
+        "                              bins=[-1, 90, 180, 365, 99999],\n",
+        "                              labels=[\"<90d\", \"90-180d\", \"180-365d\", \"365d+\"])\n",
+        "df[\"is_declining\"] = (df[\"trend_direction\"] == \"down\").astype(int)\n",
+        "\n",
+        "stale_table = df.groupby(\"stale_bucket\", observed=True).agg(\n",
+        "    n=(\"content_id\", \"count\"),\n",
+        "    decline_rate=(\"is_declining\", \"mean\")\n",
+        ").reset_index()\n",
+        "print(\"Signal 1: Staleness vs decline rate\")\n",
+        "print(stale_table)\n",
+        "\n",
+        "base_rate = df[\"is_declining\"].mean()\n",
+        "print(f\"\\nOverall decline rate (base rate): {base_rate:.3f}\")\n",
+        "\n",
+        "most_stale_rate = stale_table.iloc[-1][\"decline_rate\"]\n",
+        "if most_stale_rate > base_rate * 1.2:\n",
+        "    verdict1 = \"CONFIRMED\"\n",
+        "elif most_stale_rate < base_rate * 0.8:\n",
+        "    verdict1 = \"OPPOSITE\"\n",
+        "else:\n",
+        "    verdict1 = \"MIXED\"\n",
+        "print(f\"VERDICT: {verdict1} - staleness {'is' if verdict1=='CONFIRMED' else 'is not clearly'} linked to decline\")"
+      ],
+      "metadata": {
+        "id": "BS2yEjcRVaeW",
+        "outputId": "359487e0-ad56-4cb3-e713-e13cbc589837",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "id": "BS2yEjcRVaeW",
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Signal 1: Staleness vs decline rate\n",
+            "  stale_bucket      n  decline_rate\n",
+            "0         <90d  20655      0.512031\n",
+            "1      90-180d   9171      0.611057\n",
+            "2     180-365d    169      0.467456\n",
+            "3        365d+      5      0.600000\n",
+            "\n",
+            "Overall decline rate (base rate): 0.542\n",
+            "VERDICT: MIXED - staleness is not clearly linked to decline\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Signal 2: CTR vs Position (behind the CTR-fix logic)\n",
+        "df[\"position_bucket\"] = pd.cut(df[\"avg_position\"],\n",
+        "                                 bins=[-1, 0, 3, 10, 20, 100],\n",
+        "                                 labels=[\"no_data\", \"top3\", \"4-10\", \"11-20\", \"20+\"])\n",
+        "\n",
+        "ctr_table = df[df[\"avg_position\"] > 0].groupby(\"position_bucket\", observed=True).agg(\n",
+        "    n=(\"content_id\", \"count\"),\n",
+        "    avg_ctr=(\"ctr\", \"mean\")\n",
+        ").reset_index()\n",
+        "print(\"Signal 2: Position vs average CTR\")\n",
+        "print(ctr_table)\n",
+        "\n",
+        "top_ctr = ctr_table[ctr_table[\"position_bucket\"] == \"top3\"][\"avg_ctr\"].values\n",
+        "low_pos_ctr = ctr_table[ctr_table[\"position_bucket\"] == \"11-20\"][\"avg_ctr\"].values\n",
+        "\n",
+        "if len(top_ctr) and len(low_pos_ctr) and top_ctr[0] > low_pos_ctr[0]:\n",
+        "    verdict2 = \"CONFIRMED\"\n",
+        "else:\n",
+        "    verdict2 = \"MIXED\"\n",
+        "print(f\"VERDICT: {verdict2} - better position {'does' if verdict2=='CONFIRMED' else 'does not clearly'} mean higher CTR\")"
+      ],
+      "metadata": {
+        "id": "pSNfM4-BVfXM",
+        "outputId": "d1ff5494-bba0-44d7-808e-243aac37eb2d",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "id": "pSNfM4-BVfXM",
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Signal 2: Position vs average CTR\n",
+            "  position_bucket      n   avg_ctr\n",
+            "0            top3   1141  2.714303\n",
+            "1            4-10  11842  0.651045\n",
+            "2           11-20   7273  0.323443\n",
+            "3             20+   8524  0.211705\n",
+            "VERDICT: CONFIRMED - better position does mean higher CTR\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "5kpfCDYVVLfO"
+      },
+      "source": [
+        "## 2. Build the ranked queue (writes the CSV)\n",
+        "\n",
+        "*Code the score, rank everything, write work/outputs/baseline_action_score.csv.*"
+      ],
+      "id": "5kpfCDYVVLfO"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "QVellldpVLfP",
+        "outputId": "e00de0d4-99a2-41c6-c818-cdd39822915b",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Wrote 30000 rows to work/outputs/baseline_action_score.csv\n",
+            "                 content_id          client_id  baseline_score  \\\n",
+            "16751  content_cf56e2e2e282  client_7f2253d7e2           61678   \n",
+            "16514  content_7368877ea310  client_7f2253d7e2           59472   \n",
+            "7021   content_1bfaa38ff26c  client_7f2253d7e2           25715   \n",
+            "21268  content_0a91db491d14  client_7f2253d7e2           13299   \n",
+            "11489  content_5feee3994adb  client_7f2253d7e2            7812   \n",
+            "12045  content_c2d929d83eaa  client_7f2253d7e2            7558   \n",
+            "698    content_b16bd7307b39  client_7f2253d7e2            4590   \n",
+            "5327   content_fe16a55cd13d  client_7f2253d7e2            4556   \n",
+            "26810  content_ecb6215e79fd  client_7f2253d7e2            4429   \n",
+            "20837  content_928af3e22c80  client_7f2253d7e2            1697   \n",
+            "\n",
+            "             reason_code              action  days_since_last_update  \\\n",
+            "16751  stale_but_visible  review_for_refresh                     194   \n",
+            "16514  stale_but_visible  review_for_refresh                     194   \n",
+            "7021   stale_but_visible  review_for_refresh                     194   \n",
+            "21268  stale_but_visible  review_for_refresh                     193   \n",
+            "11489  stale_but_visible  review_for_refresh                     194   \n",
+            "12045  stale_but_visible  review_for_refresh                     193   \n",
+            "698    stale_but_visible  review_for_refresh                     194   \n",
+            "5327   stale_but_visible  review_for_refresh                     194   \n",
+            "26810  stale_but_visible  review_for_refresh                     194   \n",
+            "20837  stale_but_visible  review_for_refresh                     193   \n",
+            "\n",
+            "       impressions_90d  avg_position   ctr trend_direction  \n",
+            "16751            61678          19.7  0.15            down  \n",
+            "16514            59472          24.8  0.13            down  \n",
+            "7021             25715          22.2  0.23            down  \n",
+            "21268            13299          10.5  0.49            down  \n",
+            "11489             7812          39.0  0.01            down  \n",
+            "12045             7558          17.9  0.20            down  \n",
+            "698               4590          31.0  0.00            down  \n",
+            "5327              4556          16.4  0.33            down  \n",
+            "26810             4429          25.3  0.38            down  \n",
+            "20837             1697          15.8  0.12            down  \n"
+          ]
+        }
+      ],
+      "source": [
+        "os.makedirs(\"work/outputs\", exist_ok=True)\n",
+        "\n",
+        "stale = (df[\"days_since_last_update\"] >= 180).astype(int)\n",
+        "visible = (df[\"impressions_90d\"] >= 500).astype(int)\n",
+        "\n",
+        "df[\"baseline_score\"] = stale * visible * df[\"impressions_90d\"]\n",
+        "\n",
+        "def reason_code(row):\n",
+        "    if row[\"days_since_last_update\"] >= 180 and row[\"impressions_90d\"] >= 500:\n",
+        "        return \"stale_but_visible\"\n",
+        "    return \"no_flag\"\n",
+        "\n",
+        "df[\"reason_code\"] = df.apply(reason_code, axis=1)\n",
+        "df[\"action\"] = np.where(df[\"baseline_score\"] > 0, \"review_for_refresh\", \"monitor\")\n",
+        "\n",
+        "queue = df.sort_values(\"baseline_score\", ascending=False)[\n",
+        "    [\"content_id\", \"client_id\", \"baseline_score\", \"reason_code\", \"action\",\n",
+        "     \"days_since_last_update\", \"impressions_90d\", \"avg_position\", \"ctr\", \"trend_direction\"]\n",
+        "]\n",
+        "\n",
+        "queue.to_csv(\"work/outputs/baseline_action_score.csv\", index=False)\n",
+        "print(f\"Wrote {len(queue)} rows to work/outputs/baseline_action_score.csv\")\n",
+        "print(queue.head(10))"
+      ],
+      "id": "QVellldpVLfP"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Precision@K evaluation, with base rate for context\n",
+        "def precision_at_k(scores, labels, k):\n",
+        "    order = np.argsort(-np.asarray(scores))\n",
+        "    return np.asarray(labels)[order[:k]].mean()\n",
+        "\n",
+        "p50 = precision_at_k(df[\"baseline_score\"], df[\"is_declining\"], 50)\n",
+        "print(f\"Baseline Precision@50: {p50:.3f}\")\n",
+        "print(f\"Base rate (random guessing): {df['is_declining'].mean():.3f}\")\n",
+        "\n",
+        "import json\n",
+        "metrics = {\"precision_at_50\": float(p50), \"base_rate\": float(df[\"is_declining\"].mean())}\n",
+        "with open(\"work/outputs/baseline_metrics.json\", \"w\") as f:\n",
+        "    json.dump(metrics, f, indent=2)\n",
+        "print(\"Saved metrics to work/outputs/baseline_metrics.json\")"
+      ],
+      "metadata": {
+        "id": "YnNZ3kdbVnnx",
+        "outputId": "2eb1a9a7-74c3-4c48-ba42-d7e5a1078be2",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "id": "YnNZ3kdbVnnx",
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Baseline Precision@50: 0.680\n",
+            "Base rate (random guessing): 0.542\n",
+            "Saved metrics to work/outputs/baseline_metrics.json\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "BPJ6jxlHVLfQ"
+      },
+      "source": [
+        "## 3. Top-20 review\n",
+        "\n",
+        "*For each of the top 20: action, reason code, confidence note, and what would make it wrong.*"
+      ],
+      "id": "BPJ6jxlHVLfQ"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "wT4ZPBv9VLfR",
+        "outputId": "b26d2951-0ce5-465f-8a2b-f2489be6fab4",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "TOP 10 REVIEW:\n",
+            "\n",
+            "1. content_id=content_cf56e2e2e282 | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 61678 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "2. content_id=content_7368877ea310 | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 59472 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "3. content_id=content_1bfaa38ff26c | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 25715 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "4. content_id=content_0a91db491d14 | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 193 days since update, 13299 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "5. content_id=content_5feee3994adb | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 7812 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "6. content_id=content_c2d929d83eaa | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 193 days since update, 7558 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "7. content_id=content_b16bd7307b39 | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 4590 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "8. content_id=content_fe16a55cd13d | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 4556 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "9. content_id=content_ecb6215e79fd | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 194 days since update, 4429 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n",
+            "10. content_id=content_928af3e22c80 | action=review_for_refresh | reason=stale_but_visible\n",
+            "   Why it's here: 193 days since update, 1697 impressions (stale + still visible).\n",
+            "   What would make it wrong: if this page's traffic is seasonal and will naturally recover without a refresh, or if a related page on the same site absorbed its lost traffic (consolidation), this flag would be a false positive.\n",
+            "\n"
+          ]
+        }
+      ],
+      "source": [
+        "top10 = queue.head(10).reset_index(drop=True)\n",
+        "print(\"TOP 10 REVIEW:\\n\")\n",
+        "for i, row in top10.iterrows():\n",
+        "    print(f\"{i+1}. content_id={row['content_id']} | action={row['action']} | reason={row['reason_code']}\")\n",
+        "    print(f\"   Why it's here: {row['days_since_last_update']} days since update, \"\n",
+        "          f\"{row['impressions_90d']} impressions (stale + still visible).\")\n",
+        "    print(f\"   What would make it wrong: if this page's traffic is seasonal and will \"\n",
+        "          f\"naturally recover without a refresh, or if a related page on the same site \"\n",
+        "          f\"absorbed its lost traffic (consolidation), this flag would be a false positive.\\n\")"
+      ],
+      "id": "wT4ZPBv9VLfR"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-wOMuLLCVLfS"
+      },
+      "source": [
+        "## 4. Weak picks + leakage check\n",
+        "\n",
+        "*Which picks look wrong and why? Confirm no product flags or future windows leaked in.*"
+      ],
+      "id": "-wOMuLLCVLfS"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "tDrFKsEnVLfS",
+        "outputId": "a7d53723-7424-47cb-b641-1a050a8182f5",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 313
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "\"\\nWeakest picks in my top 10: any row where impressions_90d is just barely\\nabove the 500 threshold and days_since_last_update is just barely above\\n180 - these are borderline cases where a small measurement noise could\\nflip them in or out of the queue. I'd want a persistence check (is the\\ndecline sustained across multiple recent windows, not just one) before\\ntrusting these borderline rows as strongly as the clearer cases.\\n\""
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 7
+        }
+      ],
+      "source": [
+        "\"\"\"\n",
+        "Weakest picks in my top 10: any row where impressions_90d is just barely\n",
+        "above the 500 threshold and days_since_last_update is just barely above\n",
+        "180 - these are borderline cases where a small measurement noise could\n",
+        "flip them in or out of the queue. I'd want a persistence check (is the\n",
+        "decline sustained across multiple recent windows, not just one) before\n",
+        "trusting these borderline rows as strongly as the clearer cases.\n",
+        "\"\"\""
+      ],
+      "id": "tDrFKsEnVLfS"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "rczP3pKzVLfT"
+      },
+      "source": [
+        "## Self-check\n",
+        "\n",
+        "Before you submit, confirm each line honestly:\n",
+        "\n",
+        "- [ ] Every section above is filled — markdown thinking AND the code that backs it\n",
+        "- [ ] The notebook runs top to bottom with no errors (Runtime → Run all)\n",
+        "- [ ] No client names, URLs, or private queries anywhere\n",
+        "- [ ] My claims use careful words: observed, measured, directional, decision-support\n",
+        "- [ ] Committed to my repo under `work/notebooks/` — then submit your repo URL on the card. Done."
+      ],
+      "id": "rczP3pKzVLfT"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
